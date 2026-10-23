@@ -4,7 +4,7 @@ import json
 
 # =========================================================================
 # PEGA AQUÍ TU URL DE APPS SCRIPT (LA MISMA QUE YA TENÍAS):
-WEBHOOK_URL = "PEGA_AQUI_TU_URL_DE_APPS_SCRIPT_QUE_TERMINA_EN_EXEC"
+WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbylxSqmSdiTUrYCKhllKQ7eTu9sLU8Yb27pAUBbmAFnUMRiILfH9zANmzczrAzoYCj58g/exec"
 # =========================================================================
 
 ctk.set_appearance_mode("dark")
