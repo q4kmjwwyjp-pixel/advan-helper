@@ -1,0 +1,28 @@
+name: Crear Ejecutable Windows
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Instalar Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Empaquetar en .EXE con PyInstaller
+      run: |
+        pip install pyinstaller
+        pyinstaller --onefile --noconsole --name "AdvanHelper" main.py
+        
+    - name: Subir el archivo .EXE listo para descargar
+      uses: actions/upload-artifact@v4
+      with:
+        name: AdvanHelper-Portable
+        path: dist/AdvanHelper.exe
