@@ -3,7 +3,7 @@ import urllib.request
 import json
 
 # =========================================================================
-# PEGA AQUÍ TU URL DE APPS SCRIPT (LA MISMA QUE YA TENÍAS):
+# PEGA AQUÍ TU URL DE APPS SCRIPT:
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbylxSqmSdiTUrYCKhllKQ7eTu9sLU8Yb27pAUBbmAFnUMRiILfH9zANmzczrAzoYCj58g/exec"
 # =========================================================================
 
@@ -15,10 +15,10 @@ class AdvanHelperApp(ctk.CTk):
         super().__init__()
 
         self.title("Advan Helper Pro - Tradelossa")
-        self.geometry("370x580")
+        self.geometry("380x610")
         self.resizable(False, False)
         self.attributes("-topmost", True)
-        self.configure(fg_color="#0f111a") # Fondo ultra oscuro elegante
+        self.configure(fg_color="#0f111a")
 
         self.ultima_fila = None
         self.historial = []
@@ -42,7 +42,6 @@ class AdvanHelperApp(ctk.CTk):
         self.seg_resp.set("FS")
         self.seg_resp.pack(side="left", padx=2)
 
-        # Botón Modo Mini
         self.btn_mini = ctk.CTkButton(
             self.header, text="🔼 Mini", width=55, height=26, corner_radius=8,
             fg_color="#26293c", hover_color="#3b405e", font=("Segoe UI", 11, "bold"),
@@ -50,12 +49,11 @@ class AdvanHelperApp(ctk.CTk):
         )
         self.btn_mini.pack(side="right", padx=8)
 
-        # Switch Transparencia Fantasma
         self.sw_ghost = ctk.CTkSwitch(
             self.header, text="Fantasma", font=("Segoe UI", 11), text_color="#a6adc8",
             progress_color="#8b5cf6", width=40
         )
-        self.sw_ghost.select() # Activado por defecto
+        self.sw_ghost.select()
         self.sw_ghost.pack(side="right", padx=6)
 
         # --- CONTENEDOR PRINCIPAL ---
@@ -64,7 +62,7 @@ class AdvanHelperApp(ctk.CTk):
 
         # Switch Fijar OC/Factura
         self.frame_fijar = ctk.CTkFrame(self.main_body, fg_color="#181b28", corner_radius=10)
-        self.frame_fijar.pack(fill="x", pady=4)
+        self.frame_fijar.pack(fill="x", pady=3)
         self.sw_repetir = ctk.CTkSwitch(
             self.frame_fijar, text="Fijar OC / Factura (Múltiples Unidades)",
             font=("Segoe UI", 11, "bold"), text_color="#cbd5e1", progress_color="#10b981"
@@ -75,19 +73,49 @@ class AdvanHelperApp(ctk.CTk):
         self.form_card = ctk.CTkFrame(self.main_body, fg_color="#181b28", corner_radius=12)
         self.form_card.pack(fill="x", pady=4)
 
-        campos = [
+        self.entries = {}
+
+        # 1. FILA ESPECIAL PARA CÓDIGO (ARRIBA CON BOTÓN BUSCAR Y OTRA OC)
+        row_cod = ctk.CTkFrame(self.form_card, fg_color="transparent")
+        row_cod.pack(fill="x", padx=10, pady=(8, 4))
+        
+        ctk.CTkLabel(row_cod, text="1° Código(s):", width=85, anchor="w", font=("Segoe UI", 12, "bold"), text_color="#38bdf8").pack(side="left")
+        
+        self.btn_cancelar_busq = ctk.CTkButton(
+            row_cod, text="✖ Otra OC", width=62, height=28, corner_radius=8,
+            fg_color="#ef4444", hover_color="#dc2626", font=("Segoe UI", 10, "bold"),
+            command=self.descartar_autocompletado
+        )
+        self.btn_cancelar_busq.pack(side="right", padx=(4, 0))
+
+        self.btn_buscar = ctk.CTkButton(
+            row_cod, text="🔍", width=32, height=28, corner_radius=8,
+            fg_color="#3b82f6", hover_color="#2563eb", font=("Segoe UI", 12, "bold"),
+            command=self.buscar_ultimo_codigo
+        )
+        self.btn_buscar.pack(side="right", padx=(4, 0))
+
+        ent_cod = ctk.CTkEntry(
+            row_cod, placeholder_text="Ej. A00-012 (Enter)", height=28, corner_radius=8,
+            fg_color="#0f111a", border_color="#38bdf8", border_width=1,
+            text_color="#ffffff", font=("Segoe UI", 12, "bold")
+        )
+        ent_cod.pack(side="right", fill="x", expand=True)
+        ent_cod.bind("<Return>", self.buscar_ultimo_codigo)
+        self.entries["cod"] = ent_cod
+
+        # 2. RESTO DE CAMPOS
+        otros_campos = [
             ("Orden Compra:", "oc", "Ej. 88027"),
             ("Factura / Ref:", "fact", "Ej. 70545 o PTE"),
             ("Descripción:", "desc", "Ej. ACUMULADOR"),
-            ("Unidad:", "uni", "Ej. K234"),
             ("Proveedor:", "prov", "Ej. 7302"),
-            ("Código(s):", "cod", "Ej. A00-416 / A00-417")
+            ("Unidad:", "uni", "Ej. K234 (Enter guarda)")
         ]
 
-        self.entries = {}
-        lista_claves = [c[1] for c in campos]
+        claves_orden = [c[1] for c in otros_campos]
 
-        for idx, (label_txt, key, placeholder) in enumerate(campos):
+        for idx, (label_txt, key, placeholder) in enumerate(otros_campos):
             row = ctk.CTkFrame(self.form_card, fg_color="transparent")
             row.pack(fill="x", padx=10, pady=3)
             
@@ -102,9 +130,8 @@ class AdvanHelperApp(ctk.CTk):
             ent.pack(side="right", fill="x", expand=True)
             ent.bind("<KeyRelease>", self.actualizar_preview)
 
-            # Conectar Enter para bajar al siguiente campo
-            if idx < len(campos) - 1:
-                next_key = lista_claves[idx + 1]
+            if idx < len(otros_campos) - 1:
+                next_key = claves_orden[idx + 1]
                 ent.bind("<Return>", lambda e, nk=next_key: self.entries[nk].focus())
             else:
                 ent.bind("<Return>", lambda e: self.guardar_y_copiar())
@@ -116,7 +143,7 @@ class AdvanHelperApp(ctk.CTk):
         self.preview_box.pack(fill="x", pady=5)
         self.lbl_preview = ctk.CTkLabel(
             self.preview_box, text="OC MTY (FACT PROV )", font=("Consolas", 11, "bold"),
-            text_color="#38bdf8", wraplength=330
+            text_color="#38bdf8", wraplength=340
         )
         self.lbl_preview.pack(pady=6, padx=6)
 
@@ -149,7 +176,7 @@ class AdvanHelperApp(ctk.CTk):
         self.btn_pol.pack(side="right", padx=10, pady=7)
 
         # Estado
-        self.lbl_status = ctk.CTkLabel(self.main_body, text="✨ Listo para capturar", font=("Segoe UI", 11, "bold"), text_color="#94a3b8")
+        self.lbl_status = ctk.CTkLabel(self.main_body, text="✨ Escribe un Código y presiona Enter", font=("Segoe UI", 11, "bold"), text_color="#94a3b8")
         self.lbl_status.pack(pady=1)
 
         # --- HISTORIAL DE ÚLTIMOS 3 REGISTROS ---
@@ -163,27 +190,73 @@ class AdvanHelperApp(ctk.CTk):
         )
         self.lbl_hist.pack(fill="x", padx=10, pady=(2, 6))
 
-    # --- FUNCIONES DE TRANSPARENCIA Y MODO MINI ---
+    # --- TRANSPARENCIA Y MODO MINI ---
     def on_mouse_enter(self, event=None):
-        self.attributes("-alpha", 1.0) # 100% Sólido al tocar la ventana
+        self.attributes("-alpha", 1.0)
 
     def on_mouse_leave(self, event=None):
         if self.sw_ghost.get() == 1:
-            self.attributes("-alpha", 0.55) # 55% Transparente al salir a Advan Trucks
+            self.attributes("-alpha", 0.55)
 
     def toggle_mini(self):
         if not self.modo_mini:
             self.main_body.pack_forget()
-            self.geometry("370x65")
+            self.geometry("380x65")
             self.btn_mini.configure(text="🔽 Abrir")
             self.modo_mini = True
         else:
-            self.geometry("370x580")
+            self.geometry("380x610")
             self.main_body.pack(fill="both", expand=True, padx=10, pady=2)
             self.btn_mini.configure(text="🔼 Mini")
             self.modo_mini = False
 
-    # --- LÓGICA DE DATOS ---
+    # --- BÚSQUEDA INTELIGENTE POR CÓDIGO ---
+    def buscar_ultimo_codigo(self, event=None):
+        cod = self.entries["cod"].get().strip().upper()
+        if not cod:
+            return
+
+        self.lbl_status.configure(text=f"🔍 Buscando último registro de {cod}...", text_color="#38bdf8")
+        self.update()
+
+        datos = {"action": "buscar_codigo", "codigo": cod}
+        try:
+            req = urllib.request.Request(
+                WEBHOOK_URL,
+                data=json.dumps(datos).encode('utf-8'),
+                headers={'Content-Type': 'application/json'}
+            )
+            with urllib.request.urlopen(req) as response:
+                res = json.loads(response.read().decode('utf-8'))
+                if res.get("status") == "found":
+                    for campo, valor in [("oc", res.get("oc")), ("fact", res.get("factura")), 
+                                         ("desc", res.get("descripcion")), ("prov", res.get("proveedor"))]:
+                        self.entries[campo].delete(0, "end")
+                        self.entries[campo].insert(0, valor)
+                    
+                    self.actualizar_preview()
+                    fecha_ant = res.get("fecha", "")
+                    uni_ant = res.get("unidad_anterior", "")
+                    self.lbl_status.configure(
+                        text=f"✅ Últ: {fecha_ant} [{uni_ant}]. Valida o da '✖ Otra OC'",
+                        text_color="#10b981"
+                    )
+                    self.entries["uni"].focus()
+                else:
+                    self.lbl_status.configure(text="ℹ️ Código nuevo. Llena los datos manualmente.", text_color="#f59e0b")
+                    self.entries["oc"].focus()
+        except Exception:
+            self.lbl_status.configure(text="⚠️ No se pudo buscar en Sheets. Llena manual.", text_color="#ef4444")
+            self.entries["oc"].focus()
+
+    def descartar_autocompletado(self):
+        for key in ["oc", "fact", "prov"]:
+            self.entries[key].delete(0, "end")
+        self.actualizar_preview()
+        self.lbl_status.configure(text="✏️ Ingresa la nueva OC, Factura y Proveedor", text_color="#f59e0b")
+        self.entries["oc"].focus()
+
+    # --- LÓGICA DE GUARDADO ---
     def armar_texto(self):
         oc = self.entries["oc"].get().strip().upper()
         fact = self.entries["fact"].get().strip().upper()
@@ -241,7 +314,6 @@ class AdvanHelperApp(ctk.CTk):
                 res = json.loads(response.read().decode('utf-8'))
                 self.ultima_fila = res.get("row")
                 
-                # Agregar al historial
                 pol_actual = self.entry_pol.get().strip() or "Pend."
                 self.historial.insert(0, {
                     "row": self.ultima_fila,
@@ -273,7 +345,6 @@ class AdvanHelperApp(ctk.CTk):
             )
             urllib.request.urlopen(req)
             
-            # Actualizar póliza en el historial visual
             if self.historial and self.historial[0]["row"] == self.ultima_fila:
                 self.historial[0]["pol"] = poliza
                 self.actualizar_vista_historial()
@@ -285,9 +356,9 @@ class AdvanHelperApp(ctk.CTk):
 
     def limpiar_campos(self):
         if self.sw_repetir.get() == 0:
-            for key in ["oc", "fact", "desc", "prov", "cod"]:
+            for key in ["cod", "oc", "fact", "desc", "prov"]:
                 self.entries[key].delete(0, "end")
-            self.entries["oc"].focus()
+            self.entries["cod"].focus()
         else:
             self.entries["uni"].focus()
 
