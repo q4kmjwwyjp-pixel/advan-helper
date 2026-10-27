@@ -1,6 +1,9 @@
 import customtkinter as ctk
 import urllib.request
 import json
+import sys
+import os
+import ctypes
 
 # =========================================================================
 # PEGA AQUÍ TU URL DE APPS SCRIPT:
@@ -16,6 +19,16 @@ class AdvanHelperApp(ctk.CTk):
 
         self.title("Advan Helper Pro v4 - Tradelossa")
         self.geometry("430x700")
+        
+         # --- CARGAR LOGO PERSONALIZADO EN VENTANA Y BARRA DE TAREAS ---
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("tradelossa.advanhelper.v4")
+            ruta_base = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+            ruta_ico = os.path.join(ruta_base, "logo.ico")
+            if os.path.exists(ruta_ico):
+                self.iconbitmap(ruta_ico)
+        except Exception:
+            pass
         self.resizable(False, False)
         self.attributes("-topmost", True)
         self.configure(fg_color="#090d16") # Fondo ultra oscuro tipo Shadcn/Linear
