@@ -3,26 +3,22 @@ name: Crear Ejecutable Windows
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Instalar Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        
-    - name: Empaquetar en .EXE con PyInstaller y CustomTkinter
-      run: |
-        pip install pyinstaller customtkinter
-        pyinstaller --noconfirm --onefile --windowed --collect-all customtkinter --name "AdvanHelper_v2" main.py
-        
-    - name: Subir el archivo .EXE listo para descargar
-      uses: actions/upload-artifact@v4
-      with:
-        name: AdvanHelper-Portable-v2
-        path: dist/AdvanHelper_v2.exe
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Instalar librerias
+        run: pip install pyinstaller customtkinter pillow
+      - name: Convertir PNG a ICO y Crear EXE con Logo
+        run: |
+          python -c "from PIL import Image; img = Image.open('logo.png'); img.save('logo.ico', format='ICO', sizes=[(256, 256), (64, 64), (32, 32), (16, 16)])"
+          pyinstaller --noconfirm --onefile --windowed --icon=logo.ico --add-data "logo.ico;." --collect-all customtkinter --name AdvanHelper_v4 main.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AdvanHelper-Portable-v4
+          path: dist/AdvanHelper_v4.exe
