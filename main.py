@@ -121,26 +121,33 @@ class AdvanHelperApp(ctk.CTk):
         ent_cod.bind("<Return>", self.buscar_ultimo_codigo)
         self.entries["cod"] = ent_cod
 
-        # Fila 2: Orden de Compra + Buscar OC + Limpiar
+        # Fila 2: Orden de Compra + Check Entrada + Buscar OC + Limpiar
         row_oc = ctk.CTkFrame(self.form_card, fg_color="transparent")
         row_oc.pack(fill="x", padx=10, pady=4)
         ctk.CTkLabel(row_oc, text="O. COMPRA:", width=75, anchor="w", font=("Segoe UI", 11, "bold"), text_color="#d1d5db").pack(side="left")
 
         self.btn_otra_oc = ctk.CTkButton(
-            row_oc, text="✖ Limpiar", width=68, height=28, corner_radius=8,
+            row_oc, text="✖ Limpiar", width=60, height=28, corner_radius=8,
             fg_color="#374151", hover_color="#4b5563", font=("Segoe UI", 10, "bold"),
             command=self.limpiar_oc_fact_prov
         )
         self.btn_otra_oc.pack(side="right", padx=(4, 0))
 
         self.btn_buscar_oc = ctk.CTkButton(
-            row_oc, text="🔍 OC", width=52, height=28, corner_radius=8,
+            row_oc, text="🔍 OC", width=48, height=28, corner_radius=8,
             fg_color="#0284c7", hover_color="#0369a1", font=("Segoe UI", 11, "bold"), command=self.buscar_datos_por_oc
         )
         self.btn_buscar_oc.pack(side="right", padx=(4, 0))
 
+        self.chk_entrada = ctk.CTkCheckBox(
+            row_oc, text="Entrada", width=68, height=24, checkbox_width=18, checkbox_height=18,
+            corner_radius=5, fg_color="#10b981", hover_color="#059669",
+            border_color="#10b981", font=("Segoe UI", 11, "bold"), text_color="#10b981"
+        )
+        self.chk_entrada.pack(side="right", padx=(4, 2))
+
         ent_oc = ctk.CTkEntry(
-            row_oc, placeholder_text="88104 (Enter busca Prov)", height=28, corner_radius=8,
+            row_oc, placeholder_text="Ej. 88104", height=28, corner_radius=8,
             fg_color="#090d16", border_color="#374151", font=("Segoe UI", 12)
         )
         ent_oc.pack(side="left", fill="x", expand=True)
@@ -326,6 +333,7 @@ class AdvanHelperApp(ctk.CTk):
     def limpiar_oc_fact_prov(self):
         for k in ["oc", "fact", "prov"]:
             self.entries[k].delete(0, "end")
+        self.chk_entrada.deselect()
         self.actualizar_preview()
         self.entries["oc"].focus()
 
@@ -352,6 +360,7 @@ class AdvanHelperApp(ctk.CTk):
         fact = self.entries["fact"].get().strip().upper()
         desc = self.entries["desc"].get().strip().upper()
         prov = self.entries["prov"].get().strip().upper()
+        entrada_oc = bool(self.chk_entrada.get() == 1 and oc != "")
 
         if not uni or not desc:
             self.lbl_status.configure(text="⚠️ Falta escribir la Unidad o la Descripción", text_color="#f59e0b")
@@ -384,6 +393,8 @@ class AdvanHelperApp(ctk.CTk):
             grupo_existente["cod"] = nuevo_cod_str
             grupo_existente["desc"] = nueva_desc_str
             grupo_existente["contab"] = nueva_contab_str
+            if entrada_oc:
+                grupo_existente["entrada"] = True
 
             self.lbl_status.configure(text=f"⏳ Empalmando {cod} y sumando descripción en OC {oc}...", text_color="#f59e0b")
             self.update()
@@ -396,15 +407,19 @@ class AdvanHelperApp(ctk.CTk):
                         "row": grupo_existente["row"],
                         "codigo": nuevo_cod_str,
                         "descripcion": nueva_desc_str,
-                        "contab": nueva_contab_str
+                        "contab": nueva_contab_str,
+                        "oc": oc,
+                        "responsable": self.seg_resp.get(),
+                        "entrada_oc": entrada_oc
                     }).encode('utf-8'),
                     headers={'Content-Type': 'application/json'}
                 )
                 urllib.request.urlopen(req)
                 self.clipboard_clear()
                 self.clipboard_append(nueva_contab_str)
+                msg_extra = " + 📥 Entrada OC" if entrada_oc else ""
                 self.lbl_status.configure(
-                    text=f"🔗 ¡Empalmado en Fila {grupo_existente['row']}! ({nueva_desc_str})",
+                    text=f"🔗 ¡Empalmado en Fila {grupo_existente['row']}{msg_extra}! ({nueva_desc_str})",
                     text_color="#10b981"
                 )
             except Exception:
@@ -420,7 +435,8 @@ class AdvanHelperApp(ctk.CTk):
             datos = {
                 "action": "nuevo", "oc": oc, "factura": fact, "descripcion": desc,
                 "unidad": uni, "proveedor": prov, "codigo": cod,
-                "responsable": self.seg_resp.get(), "poliza": ""
+                "responsable": self.seg_resp.get(), "poliza": "",
+                "entrada_oc": entrada_oc
             }
             try:
                 req = urllib.request.Request(
@@ -432,15 +448,18 @@ class AdvanHelperApp(ctk.CTk):
                     fila_nueva = res.get("row")
                     self.cola_salidas.append({
                         "row": fila_nueva, "uni": uni, "oc": oc, "fact": fact,
-                        "desc": desc, "prov": prov, "cod": cod, "contab": contab, "pol": ""
+                        "desc": desc, "prov": prov, "cod": cod, "contab": contab, "pol": "",
+                        "entrada": entrada_oc
                     })
-                    self.lbl_status.configure(text=f"✅ Grupo #{len(self.cola_salidas)} creado (Fila {fila_nueva})", text_color="#10b981")
+                    msg_extra = " + 📥 Entrada OC registrada" if entrada_oc else ""
+                    self.lbl_status.configure(text=f"✅ Grupo #{len(self.cola_salidas)} creado (Fila {fila_nueva}){msg_extra}", text_color="#10b981")
             except Exception:
                 self.lbl_status.configure(text="❌ Error de red con Sheets", text_color="#ef4444")
 
         self.renderizar_cola()
         for k in ["cod", "oc", "fact", "desc", "prov"]:
             self.entries[k].delete(0, "end")
+        self.chk_entrada.deselect()
         self.actualizar_preview()
         self.entries["cod"].focus()
 
@@ -464,7 +483,8 @@ class AdvanHelperApp(ctk.CTk):
             top = ctk.CTkFrame(card, fg_color="transparent")
             top.pack(fill="x", padx=8, pady=(6, 2))
             
-            titulo = f"#{idx+1} · Fila {item['row']} | OC: {item['oc']} | {item['desc']}"
+            badge_ent = " 📥" if item.get("entrada") else ""
+            titulo = f"#{idx+1} · Fila {item['row']} | OC: {item['oc']}{badge_ent} | {item['desc']}"
             ctk.CTkLabel(top, text=titulo, font=("Segoe UI", 11, "bold"), text_color="#38bdf8", anchor="w").pack(side="left", fill="x")
             
             lbl_cods = ctk.CTkLabel(card, text=f"🏷️ {item['cod']}", font=("Consolas", 10, "bold"), text_color="#d1d5db", anchor="w")
@@ -529,6 +549,7 @@ class AdvanHelperApp(ctk.CTk):
         self.ent_uni.delete(0, "end")
         for k in ["cod", "oc", "fact", "desc", "prov"]:
             self.entries[k].delete(0, "end")
+        self.chk_entrada.deselect()
         self.renderizar_cola()
         self.actualizar_preview()
         self.lbl_status.configure(text="🧹 Cola limpia. Ingresa la nueva Unidad.", text_color="#38bdf8")
