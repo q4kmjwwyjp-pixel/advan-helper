@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main, master ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -22,3 +25,12 @@ jobs:
         with:
           name: AdvanHelper-Portable-v4
           path: dist/AdvanHelper_v4.exe
+      - name: Publicar en Releases (Descarga sin cuenta)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v4-latest
+          name: "Advan Helper Pro v4 (Última Versión)"
+          body: "Descarga directa del ejecutable portable `AdvanHelper_v4.exe` sin necesidad de iniciar sesión."
+          files: dist/AdvanHelper_v4.exe
+          prerelease: false
+          make_latest: true
