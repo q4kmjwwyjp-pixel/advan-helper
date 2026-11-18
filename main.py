@@ -72,8 +72,8 @@ class AdvanHelperApp(ctk.CTk):
         self.main_body = ctk.CTkFrame(self, fg_color="transparent")
         self.main_body.pack(fill="both", expand=True, padx=12, pady=2)
 
-        # --- 2. APARTADO DE ENTRADA DIRECTA (SIN SALIDA) ---
-        self.entrada_card = ctk.CTkFrame(self.main_body, fg_color="#111827", corner_radius=10, border_width=1, border_color="#1e293b")
+        # --- 2. APARTADO DE ENTRADA DIRECTA (VERDE ALMACÉN / INBOUND) ---
+        self.entrada_card = ctk.CTkFrame(self.main_body, fg_color="#081713", corner_radius=10, border_width=1, border_color="#0d5743")
         self.entrada_card.pack(fill="x", pady=3)
 
         row_ent = ctk.CTkFrame(self.entrada_card, fg_color="transparent")
@@ -83,7 +83,7 @@ class AdvanHelperApp(ctk.CTk):
 
         self.ent_directa_oc = ctk.CTkEntry(
             row_ent, placeholder_text="OC (Enter registra)", height=28, corner_radius=7,
-            fg_color="#0b1120", border_color="#1e293b", text_color="#f8fafc", font=("Segoe UI", 11, "bold")
+            fg_color="#040e0b", border_color="#0d5743", text_color="#f0fdf4", font=("Segoe UI", 11, "bold")
         )
         self.ent_directa_oc.pack(side="left", fill="x", expand=True, padx=(2, 6))
         self.ent_directa_oc.bind("<Return>", self.registrar_entrada_directa)
@@ -95,27 +95,27 @@ class AdvanHelperApp(ctk.CTk):
         )
         self.btn_reg_entrada.pack(side="right")
 
-        # --- 3. BANNER DE UNIDAD ACTIVA ---
-        self.uni_card = ctk.CTkFrame(self.main_body, fg_color="#111827", corner_radius=10, border_width=1, border_color="#1e293b")
+        # --- 3. BANNER DE UNIDAD ACTIVA (ÁMBAR FLOTA / ASSET) ---
+        self.uni_card = ctk.CTkFrame(self.main_body, fg_color="#181308", corner_radius=10, border_width=1, border_color="#78350f")
         self.uni_card.pack(fill="x", pady=3)
 
-        ctk.CTkLabel(self.uni_card, text="🚛 UNIDAD:", width=78, anchor="w", font=("Segoe UI", 11, "bold"), text_color="#38bdf8").pack(side="left", padx=(10, 2), pady=6)
+        ctk.CTkLabel(self.uni_card, text="🚛 UNIDAD:", width=78, anchor="w", font=("Segoe UI", 11, "bold"), text_color="#fbbf24").pack(side="left", padx=(10, 2), pady=6)
         self.ent_uni = ctk.CTkEntry(
             self.uni_card, placeholder_text="Ej. P280", height=28, corner_radius=7,
-            fg_color="#0b1120", border_color="#1e293b", text_color="#ffffff", font=("Segoe UI", 13, "bold")
+            fg_color="#0d0903", border_color="#78350f", text_color="#fef3c7", font=("Segoe UI", 13, "bold")
         )
         self.ent_uni.pack(side="left", fill="x", expand=True, padx=(2, 6), pady=6)
         self.ent_uni.bind("<KeyRelease>", self.actualizar_preview)
 
         self.btn_nueva_uni = ctk.CTkButton(
             self.uni_card, text="Limpiar", width=72, height=28, corner_radius=7,
-            fg_color="#1e293b", hover_color="#be123c", text_color="#f87171", font=("Segoe UI", 11, "bold"),
+            fg_color="#2b1c07", hover_color="#991b1b", text_color="#fca5a5", font=("Segoe UI", 11, "bold"),
             command=self.limpiar_toda_la_unidad
         )
         self.btn_nueva_uni.pack(side="right", padx=(0, 10), pady=6)
 
-        # --- 4. CARD DE CAPTURA ---
-        self.form_card = ctk.CTkFrame(self.main_body, fg_color="#111827", corner_radius=10, border_width=1, border_color="#1e293b")
+        # --- 4. CARD DE CAPTURA (AZUL DESPACHO / CONTABILIDAD) ---
+        self.form_card = ctk.CTkFrame(self.main_body, fg_color="#0c1527", corner_radius=10, border_width=1, border_color="#1e3a8a")
         self.form_card.pack(fill="x", pady=3)
 
         self.entries = {}
@@ -123,24 +123,24 @@ class AdvanHelperApp(ctk.CTk):
         # Fila 1: Código + Pegar + Lupita
         row_cod = ctk.CTkFrame(self.form_card, fg_color="transparent")
         row_cod.pack(fill="x", padx=10, pady=(8, 3))
-        ctk.CTkLabel(row_cod, text="CÓDIGO:", width=78, anchor="w", font=("Segoe UI", 10, "bold"), text_color="#94a3b8").pack(side="left")
+        ctk.CTkLabel(row_cod, text="CÓDIGO:", width=78, anchor="w", font=("Segoe UI", 10, "bold"), text_color="#60a5fa").pack(side="left")
 
         self.btn_buscar_cod = ctk.CTkButton(
             row_cod, text="🔍", width=34, height=28, corner_radius=7,
-            fg_color="#1e293b", hover_color="#334155", text_color="#93c5fd", font=("Segoe UI", 11, "bold"), command=self.buscar_ultimo_codigo
+            fg_color="#172554", hover_color="#1e3a8a", text_color="#93c5fd", font=("Segoe UI", 11, "bold"), command=self.buscar_ultimo_codigo
         )
         self.btn_buscar_cod.pack(side="right", padx=(4, 0))
 
         self.btn_pegar_cod = ctk.CTkButton(
             row_cod, text="📋 Pegar", width=78, height=28, corner_radius=7,
-            fg_color="#1e293b", hover_color="#334155", text_color="#93c5fd", font=("Segoe UI", 11, "bold"),
+            fg_color="#172554", hover_color="#1e3a8a", text_color="#93c5fd", font=("Segoe UI", 11, "bold"),
             command=self.pegar_y_buscar_codigo
         )
         self.btn_pegar_cod.pack(side="right", padx=(4, 0))
 
         ent_cod = ctk.CTkEntry(
             row_cod, placeholder_text="Ej. AA0-168", height=28, corner_radius=7,
-            fg_color="#0b1120", border_color="#1e293b", text_color="#ffffff", font=("Segoe UI", 12, "bold")
+            fg_color="#070d18", border_color="#1e3a8a", text_color="#ffffff", font=("Segoe UI", 12, "bold")
         )
         ent_cod.pack(side="left", fill="x", expand=True)
         ent_cod.bind("<Return>", self.buscar_ultimo_codigo)
@@ -149,31 +149,31 @@ class AdvanHelperApp(ctk.CTk):
         # Fila 2: Orden de Compra + Check Entrada + Buscar OC + Limpiar
         row_oc = ctk.CTkFrame(self.form_card, fg_color="transparent")
         row_oc.pack(fill="x", padx=10, pady=3)
-        ctk.CTkLabel(row_oc, text="O. COMPRA:", width=78, anchor="w", font=("Segoe UI", 10, "bold"), text_color="#94a3b8").pack(side="left")
+        ctk.CTkLabel(row_oc, text="O. COMPRA:", width=78, anchor="w", font=("Segoe UI", 10, "bold"), text_color="#93c5fd").pack(side="left")
 
         self.btn_otra_oc = ctk.CTkButton(
             row_oc, text="✕", width=34, height=28, corner_radius=7,
-            fg_color="#1e293b", hover_color="#334155", text_color="#94a3b8", font=("Segoe UI", 11, "bold"),
+            fg_color="#172554", hover_color="#1e3a8a", text_color="#94a3b8", font=("Segoe UI", 11, "bold"),
             command=self.limpiar_oc_fact_prov
         )
         self.btn_otra_oc.pack(side="right", padx=(4, 0))
 
         self.btn_buscar_oc = ctk.CTkButton(
             row_oc, text="🔍", width=34, height=28, corner_radius=7,
-            fg_color="#1e293b", hover_color="#334155", text_color="#93c5fd", font=("Segoe UI", 11, "bold"), command=self.buscar_datos_por_oc
+            fg_color="#172554", hover_color="#1e3a8a", text_color="#93c5fd", font=("Segoe UI", 11, "bold"), command=self.buscar_datos_por_oc
         )
         self.btn_buscar_oc.pack(side="right", padx=(4, 0))
 
         self.chk_entrada = ctk.CTkCheckBox(
             row_oc, text="Entrada", width=68, height=24, checkbox_width=17, checkbox_height=17,
             corner_radius=4, fg_color="#10b981", hover_color="#059669",
-            border_color="#334155", font=("Segoe UI", 10, "bold"), text_color="#34d399"
+            border_color="#1e3a8a", font=("Segoe UI", 10, "bold"), text_color="#34d399"
         )
         self.chk_entrada.pack(side="right", padx=(4, 2))
 
         ent_oc = ctk.CTkEntry(
             row_oc, placeholder_text="Ej. 88104", height=28, corner_radius=7,
-            fg_color="#0b1120", border_color="#1e293b", text_color="#ffffff", font=("Segoe UI", 12)
+            fg_color="#070d18", border_color="#1e3a8a", text_color="#ffffff", font=("Segoe UI", 12)
         )
         ent_oc.pack(side="left", fill="x", expand=True)
         ent_oc.bind("<KeyRelease>", self.actualizar_preview)
@@ -189,7 +189,7 @@ class AdvanHelperApp(ctk.CTk):
         ctk.CTkLabel(col_fact, text="FACTURA:", font=("Segoe UI", 9, "bold"), text_color="#64748b").pack(anchor="w")
         ent_fact = ctk.CTkEntry(
             col_fact, placeholder_text="FAC-20411", height=28, corner_radius=7,
-            fg_color="#0b1120", border_color="#1e293b", text_color="#ffffff", font=("Segoe UI", 12)
+            fg_color="#070d18", border_color="#1e3a8a", text_color="#ffffff", font=("Segoe UI", 12)
         )
         ent_fact.pack(fill="x", pady=(2, 0))
         ent_fact.bind("<KeyRelease>", self.actualizar_preview)
@@ -200,7 +200,7 @@ class AdvanHelperApp(ctk.CTk):
         ctk.CTkLabel(col_prov, text="PROVEEDOR:", font=("Segoe UI", 9, "bold"), text_color="#64748b").pack(anchor="w")
         ent_prov = ctk.CTkEntry(
             col_prov, placeholder_text="Ej. 1042", height=28, corner_radius=7,
-            fg_color="#0b1120", border_color="#1e293b", text_color="#ffffff", font=("Segoe UI", 12)
+            fg_color="#070d18", border_color="#1e3a8a", text_color="#ffffff", font=("Segoe UI", 12)
         )
         ent_prov.pack(fill="x", pady=(2, 0))
         ent_prov.bind("<KeyRelease>", self.actualizar_preview)
@@ -209,10 +209,10 @@ class AdvanHelperApp(ctk.CTk):
         # Fila 4: Descripción
         row_desc = ctk.CTkFrame(self.form_card, fg_color="transparent")
         row_desc.pack(fill="x", padx=10, pady=3)
-        ctk.CTkLabel(row_desc, text="DESCRIP.:", width=78, anchor="w", font=("Segoe UI", 10, "bold"), text_color="#94a3b8").pack(side="left")
+        ctk.CTkLabel(row_desc, text="DESCRIP.:", width=78, anchor="w", font=("Segoe UI", 10, "bold"), text_color="#93c5fd").pack(side="left")
         ent_desc = ctk.CTkEntry(
             row_desc, placeholder_text="Manguera, foco, filtro...", height=28, corner_radius=7,
-            fg_color="#0b1120", border_color="#1e293b", text_color="#ffffff", font=("Segoe UI", 12)
+            fg_color="#070d18", border_color="#1e3a8a", text_color="#ffffff", font=("Segoe UI", 12)
         )
         ent_desc.pack(side="left", fill="x", expand=True)
         ent_desc.bind("<KeyRelease>", self.actualizar_preview)
@@ -223,7 +223,7 @@ class AdvanHelperApp(ctk.CTk):
         ent_prov.bind("<Return>", lambda ev: ent_desc.focus())
 
         # Preview Terminal Box
-        self.preview_box = ctk.CTkFrame(self.form_card, fg_color="#070b12", corner_radius=7, border_width=1, border_color="#1e293b")
+        self.preview_box = ctk.CTkFrame(self.form_card, fg_color="#030712", corner_radius=7, border_width=1, border_color="#172554")
         self.preview_box.pack(fill="x", padx=10, pady=4)
         self.lbl_preview = ctk.CTkLabel(
             self.preview_box, text="OC MTY (FACT PROV )", font=("Consolas", 10, "bold"),
@@ -517,8 +517,8 @@ class AdvanHelperApp(ctk.CTk):
             return
 
         for idx, item in enumerate(self.cola_salidas):
-            borde_col = "#10b981" if item["pol"] else "#1e293b"
-            card = ctk.CTkFrame(self.scroll_cola, fg_color="#0b1120", corner_radius=8, border_width=1, border_color=borde_col)
+            borde_col = "#059669" if item["pol"] else "#1e3a8a"
+            card = ctk.CTkFrame(self.scroll_cola, fg_color="#070d18", corner_radius=8, border_width=1, border_color=borde_col)
             card.pack(fill="x", pady=3, padx=2)
 
             top = ctk.CTkFrame(card, fg_color="transparent")
@@ -589,9 +589,11 @@ class AdvanHelperApp(ctk.CTk):
 
     def cambiar_vista_cola(self, seleccion):
         if seleccion == "⚠️ Sin Póliza":
+            self.seg_vista_cola.configure(selected_color="#d97706", selected_hover_color="#b45309")
             self.vista_actual = "sin_poliza"
             self.cargar_sin_poliza()
         else:
+            self.seg_vista_cola.configure(selected_color="#2563eb", selected_hover_color="#1d4ed8")
             self.vista_actual = "unidad"
             self.renderizar_cola()
 
