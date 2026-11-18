@@ -18,7 +18,7 @@ class AdvanHelperApp(ctk.CTk):
         super().__init__()
 
         self.title("Advan Helper Pro v4 - Tradelossa")
-        self.geometry("430x700")
+        self.geometry("430x740")
         
          # --- CARGAR LOGO PERSONALIZADO EN VENTANA Y BARRA DE TAREAS ---
         try:
@@ -70,7 +70,30 @@ class AdvanHelperApp(ctk.CTk):
         self.main_body = ctk.CTkFrame(self, fg_color="transparent")
         self.main_body.pack(fill="both", expand=True, padx=12, pady=2)
 
-        # --- 2. BANNER DE UNIDAD ACTIVA (DESTACADO) ---
+        # --- 2. APARTADO DE ENTRADA DIRECTA A ALMACÉN (SIN SALIDA) ---
+        self.entrada_card = ctk.CTkFrame(self.main_body, fg_color="#0b1714", corner_radius=12, border_width=1, border_color="#10b981")
+        self.entrada_card.pack(fill="x", pady=4)
+
+        row_ent = ctk.CTkFrame(self.entrada_card, fg_color="transparent")
+        row_ent.pack(fill="x", padx=10, pady=6)
+
+        ctk.CTkLabel(row_ent, text="📥 ENTRADA:", width=78, anchor="w", font=("Segoe UI", 11, "bold"), text_color="#10b981").pack(side="left")
+
+        self.ent_directa_oc = ctk.CTkEntry(
+            row_ent, placeholder_text="OC (Enter registra)", height=28, corner_radius=8,
+            fg_color="#090d16", border_color="#10b981", font=("Segoe UI", 12, "bold")
+        )
+        self.ent_directa_oc.pack(side="left", fill="x", expand=True, padx=(2, 6))
+        self.ent_directa_oc.bind("<Return>", self.registrar_entrada_directa)
+
+        self.btn_reg_entrada = ctk.CTkButton(
+            row_ent, text="📥 Registrar", width=88, height=28, corner_radius=8,
+            fg_color="#10b981", hover_color="#059669", text_color="#052e16",
+            font=("Segoe UI", 11, "bold"), command=self.registrar_entrada_directa
+        )
+        self.btn_reg_entrada.pack(side="right")
+
+        # --- 3. BANNER DE UNIDAD ACTIVA (DESTACADO) ---
         self.uni_card = ctk.CTkFrame(self.main_body, fg_color="#0f172a", corner_radius=12, border_width=1, border_color="#0284c7")
         self.uni_card.pack(fill="x", pady=4)
 
@@ -254,7 +277,7 @@ class AdvanHelperApp(ctk.CTk):
             self.btn_mini.configure(text="🔽 Abrir")
             self.modo_mini = True
         else:
-            self.geometry("430x700")
+            self.geometry("430x740")
             self.main_body.pack(fill="both", expand=True, padx=12, pady=2)
             self.btn_mini.configure(text="🔼 Mini")
             self.modo_mini = False
@@ -363,6 +386,11 @@ class AdvanHelperApp(ctk.CTk):
         entrada_oc = bool(self.chk_entrada.get() == 1 and oc != "")
 
         if not uni or not desc:
+            if entrada_oc and not uni and not desc:
+                self.enviar_registro_entrada(oc)
+                self.chk_entrada.deselect()
+                self.entries["oc"].delete(0, "end")
+                return
             self.lbl_status.configure(text="⚠️ Falta escribir la Unidad o la Descripción", text_color="#f59e0b")
             return
 
@@ -543,6 +571,64 @@ class AdvanHelperApp(ctk.CTk):
             self.lbl_status.configure(text=f"✅ Póliza {pol} guardada en Fila {item['row']}", text_color="#10b981")
         except Exception:
             self.lbl_status.configure(text="❌ Error al guardar póliza", text_color="#ef4444")
+
+    def registrar_entrada_directa(self, event=None):
+        oc = self.ent_directa_oc.get().strip().upper()
+        if not oc:
+            oc = self.entries["oc"].get().strip().upper()
+        if not oc:
+            self.lbl_status.configure(text="⚠️ Escribe la Orden de Compra para registrar su entrada", text_color="#f59e0b")
+            self.ent_directa_oc.focus()
+            return
+        self.enviar_registro_entrada(oc)
+        self.ent_directa_oc.delete(0, "end")
+        self.ent_directa_oc.focus()
+
+    def enviar_registro_entrada(self, oc_raw):
+        import re
+        ocs = [item.strip() for item in re.split(r'[,/]+', oc_raw) if item.strip()]
+        if not ocs:
+            return
+
+        resp = self.seg_resp.get()
+        self.lbl_status.configure(text=f"⏳ Registrando entrada de OC {', '.join(ocs)}...", text_color="#38bdf8")
+        self.update()
+
+        exitos = []
+        errores = []
+        for oc in ocs:
+            try:
+                req = urllib.request.Request(
+                    WEBHOOK_URL,
+                    data=json.dumps({
+                        "action": "registrar_entrada",
+                        "oc": oc,
+                        "responsable": resp
+                    }).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'}
+                )
+                with urllib.request.urlopen(req) as response:
+                    res = json.loads(response.read().decode('utf-8'))
+                    if res.get("status") == "ok":
+                        exitos.append(oc)
+                    else:
+                        errores.append(oc)
+            except Exception:
+                errores.append(oc)
+
+        if exitos and not errores:
+            msg = f"✅ Entrada registrada en reporte: OC {', '.join(exitos)} ({resp})"
+            self.lbl_status.configure(text=msg, text_color="#10b981")
+        elif exitos and errores:
+            self.lbl_status.configure(
+                text=f"⚠️ Guardadas: {', '.join(exitos)} | Error en: {', '.join(errores)}",
+                text_color="#f59e0b"
+            )
+        else:
+            self.lbl_status.configure(
+                text="❌ Error al registrar entrada. Verifica conexión o Apps Script.",
+                text_color="#ef4444"
+            )
 
     def limpiar_toda_la_unidad(self):
         self.cola_salidas = []
