@@ -34,6 +34,8 @@ class AdvanHelperApp(ctk.CTk):
         self.configure(fg_color="#090d16") # Fondo ultra oscuro tipo Shadcn/Linear
 
         self.cola_salidas = []
+        self.cola_sin_poliza = []
+        self.vista_actual = "unidad"
         self.modo_mini = False
 
         self.bind("<Enter>", self.on_mouse_enter)
@@ -248,11 +250,25 @@ class AdvanHelperApp(ctk.CTk):
         )
         self.lbl_status.pack(pady=2)
 
-        # --- 4. SECCIÓN INFERIOR: COLA DE SALIDAS ARMADAS ---
-        ctk.CTkLabel(
-            self.main_body, text="📦 SALIDAS ARMADAS DE LA UNIDAD (Copia y registra Póliza):",
-            font=("Segoe UI", 11, "bold"), text_color="#e5e7eb"
-        ).pack(anchor="w", padx=4, pady=(4, 2))
+        # --- 4. SECCIÓN INFERIOR: COLA DE SALIDAS Y PENDIENTES ---
+        row_cola_hdr = ctk.CTkFrame(self.main_body, fg_color="transparent")
+        row_cola_hdr.pack(fill="x", padx=4, pady=(4, 2))
+
+        self.seg_vista_cola = ctk.CTkSegmentedButton(
+            row_cola_hdr, values=["📦 Unidad Actual", "⚠️ Sin Póliza"],
+            height=26, selected_color="#2563eb", selected_hover_color="#1d4ed8",
+            unselected_color="#1f2937", font=("Segoe UI", 11, "bold"),
+            command=self.cambiar_vista_cola
+        )
+        self.seg_vista_cola.set("📦 Unidad Actual")
+        self.seg_vista_cola.pack(side="left")
+
+        self.btn_refrescar_sin_poliza = ctk.CTkButton(
+            row_cola_hdr, text="🔄 Actualizar", width=80, height=26, corner_radius=8,
+            fg_color="#1f2937", hover_color="#374151", text_color="#38bdf8",
+            font=("Segoe UI", 10, "bold"), command=self.cargar_sin_poliza
+        )
+        self.btn_refrescar_sin_poliza.pack(side="right")
 
         self.scroll_cola = ctk.CTkScrollableFrame(
             self.main_body, fg_color="#111827", corner_radius=12, height=210,
@@ -567,10 +583,114 @@ class AdvanHelperApp(ctk.CTk):
             )
             urllib.request.urlopen(req)
             item["pol"] = pol
-            self.renderizar_cola()
+            if self.vista_actual == "sin_poliza":
+                self.renderizar_cola_sin_poliza()
+            else:
+                self.renderizar_cola()
             self.lbl_status.configure(text=f"✅ Póliza {pol} guardada en Fila {item['row']}", text_color="#10b981")
         except Exception:
             self.lbl_status.configure(text="❌ Error al guardar póliza", text_color="#ef4444")
+
+    def cambiar_vista_cola(self, seleccion):
+        if seleccion == "⚠️ Sin Póliza":
+            self.vista_actual = "sin_poliza"
+            self.cargar_sin_poliza()
+        else:
+            self.vista_actual = "unidad"
+            self.renderizar_cola()
+
+    def cargar_sin_poliza(self):
+        self.lbl_status.configure(text="⏳ Buscando salidas sin póliza en Google Sheets...", text_color="#38bdf8")
+        self.update()
+        try:
+            req = urllib.request.Request(
+                WEBHOOK_URL,
+                data=json.dumps({"action": "obtener_sin_poliza"}).encode('utf-8'),
+                headers={'Content-Type': 'application/json'}
+            )
+            with urllib.request.urlopen(req) as resp:
+                res = json.loads(resp.read().decode('utf-8'))
+                if res.get("status") == "ok":
+                    self.cola_sin_poliza = res.get("pendientes", [])
+                    if self.vista_actual == "sin_poliza":
+                        self.renderizar_cola_sin_poliza()
+                    if self.cola_sin_poliza:
+                        self.lbl_status.configure(
+                            text=f"⚠️ {len(self.cola_sin_poliza)} salida(s) pendientes de póliza encontradas.",
+                            text_color="#f59e0b"
+                        )
+                    else:
+                        self.lbl_status.configure(
+                            text="🎉 ¡Al día! No hay salidas pendientes de póliza.",
+                            text_color="#10b981"
+                        )
+                else:
+                    self.lbl_status.configure(text="⚠️ Error al consultar pendientes de póliza.", text_color="#f59e0b")
+        except Exception:
+            self.lbl_status.configure(text="❌ Error de red al consultar salidas pendientes.", text_color="#ef4444")
+
+    def renderizar_cola_sin_poliza(self):
+        for widget in self.scroll_cola.winfo_children():
+            widget.destroy()
+
+        if not self.cola_sin_poliza:
+            ctk.CTkLabel(
+                self.scroll_cola,
+                text="🎉 ¡Al día! No hay salidas pendientes de póliza en este mes.\nUsa '🔄 Actualizar' para volver a checar.",
+                font=("Segoe UI", 11), text_color="#10b981"
+            ).pack(pady=35)
+            return
+
+        for idx, item in enumerate(self.cola_sin_poliza):
+            borde_col = "#10b981" if item.get("pol") else "#f43f5e"
+            card = ctk.CTkFrame(self.scroll_cola, fg_color="#090d16", corner_radius=10, border_width=1, border_color=borde_col)
+            card.pack(fill="x", pady=4, padx=4)
+
+            top = ctk.CTkFrame(card, fg_color="transparent")
+            top.pack(fill="x", padx=8, pady=(6, 2))
+
+            uni_txt = item.get("uni", "S/U")
+            titulo = f"Fila {item['row']} | 🚛 {uni_txt} | OC: {item['oc']}"
+            ctk.CTkLabel(top, text=titulo, font=("Segoe UI", 11, "bold"), text_color="#f43f5e" if not item.get("pol") else "#10b981", anchor="w").pack(side="left")
+
+            resp_txt = f"Resp: {item.get('resp', '-')}"
+            ctk.CTkLabel(top, text=resp_txt, font=("Segoe UI", 10, "bold"), text_color="#9ca3af").pack(side="right")
+
+            lbl_desc = ctk.CTkLabel(card, text=f"📦 {item['desc']}", font=("Segoe UI", 10, "bold"), text_color="#e5e7eb", anchor="w")
+            lbl_desc.pack(fill="x", padx=8, pady=(0, 2))
+
+            if item.get("cod"):
+                lbl_cods = ctk.CTkLabel(card, text=f"🏷️ {item['cod']}", font=("Consolas", 10), text_color="#9ca3af", anchor="w")
+                lbl_cods.pack(fill="x", padx=8, pady=(0, 4))
+
+            bot = ctk.CTkFrame(card, fg_color="transparent")
+            bot.pack(fill="x", padx=8, pady=(2, 6))
+
+            btn_cp = ctk.CTkButton(
+                bot, text="📋 Copiar OC MTY", width=118, height=26, corner_radius=6,
+                fg_color="#2563eb", hover_color="#1d4ed8", font=("Segoe UI", 10, "bold"),
+                command=lambda it=item: self.copiar_item_cola(it)
+            )
+            btn_cp.pack(side="left")
+
+            ent_p = ctk.CTkEntry(
+                bot, placeholder_text="N° Póliza", width=85, height=26, corner_radius=6,
+                fg_color="#111827", border_color="#10b981", font=("Segoe UI", 11, "bold")
+            )
+            if item.get("pol"):
+                ent_p.insert(0, item["pol"])
+            ent_p.pack(side="left", padx=6)
+
+            btn_ok = ctk.CTkButton(
+                bot, text="💾 Guardar" if not item.get("pol") else f"✅ Pól: {item['pol']}",
+                width=95, height=26, corner_radius=6,
+                fg_color="#10b981" if not item.get("pol") else "#059669",
+                text_color="#052e16" if not item.get("pol") else "#ffffff",
+                font=("Segoe UI", 10, "bold"),
+                command=lambda it=item, ep=ent_p: self.guardar_poliza_item(it, ep.get())
+            )
+            btn_ok.pack(side="right")
+            ent_p.bind("<Return>", lambda ev, it=item, ep=ent_p: self.guardar_poliza_item(it, ep.get()))
 
     def registrar_entrada_directa(self, event=None):
         oc = self.ent_directa_oc.get().strip().upper()
@@ -631,14 +751,24 @@ class AdvanHelperApp(ctk.CTk):
             )
 
     def limpiar_toda_la_unidad(self):
+        sin_pol = sum(1 for it in self.cola_salidas if not it.get("pol"))
         self.cola_salidas = []
         self.ent_uni.delete(0, "end")
         for k in ["cod", "oc", "fact", "desc", "prov"]:
             self.entries[k].delete(0, "end")
         self.chk_entrada.deselect()
-        self.renderizar_cola()
+        if self.vista_actual == "sin_poliza":
+            self.renderizar_cola_sin_poliza()
+        else:
+            self.renderizar_cola()
         self.actualizar_preview()
-        self.lbl_status.configure(text="🧹 Cola limpia. Ingresa la nueva Unidad.", text_color="#38bdf8")
+        if sin_pol > 0:
+            self.lbl_status.configure(
+                text=f"🧹 Nueva Unidad. ({sin_pol} salida(s) pendientes en '⚠️ Sin Póliza')",
+                text_color="#f59e0b"
+            )
+        else:
+            self.lbl_status.configure(text="🧹 Cola limpia. Ingresa la nueva Unidad.", text_color="#38bdf8")
         self.ent_uni.focus()
 
 if __name__ == "__main__":
