@@ -549,6 +549,13 @@ class AdvanHelperApp(ctk.CTk):
                 ent_p.insert(0, item["pol"])
             ent_p.pack(side="left", padx=6)
 
+            btn_del = ctk.CTkButton(
+                bot, text="🗑️", width=28, height=26, corner_radius=6,
+                fg_color="#1e293b", hover_color="#ef4444", text_color="#f87171", font=("Segoe UI", 10),
+                command=lambda it=item: self.eliminar_item_cola(it)
+            )
+            btn_del.pack(side="right", padx=(4, 0))
+
             btn_ok = ctk.CTkButton(
                 bot, text="💾 Guardar" if not item["pol"] else f"✅ Pól: {item['pol']}",
                 width=90, height=26, corner_radius=6,
@@ -564,6 +571,18 @@ class AdvanHelperApp(ctk.CTk):
         self.clipboard_append(item["contab"])
         self.update()
         self.lbl_status.configure(text=f"📋 Copiado al Ctrl+V: {item['contab']}", text_color="#38bdf8")
+
+    def eliminar_item_cola(self, item):
+        if item in self.cola_salidas:
+            self.cola_salidas.remove(item)
+            self.renderizar_cola()
+            self.lbl_status.configure(text=f"🗑️ Fila {item.get('row', '')} eliminada de la cola", text_color="#94a3b8")
+
+    def eliminar_item_sin_poliza(self, item):
+        if item in self.cola_sin_poliza:
+            self.cola_sin_poliza.remove(item)
+            self.renderizar_cola_sin_poliza()
+            self.lbl_status.configure(text=f"🗑️ Fila {item.get('row', '')} quitada de pendientes", text_color="#94a3b8")
 
     def guardar_poliza_item(self, item, poliza_txt):
         pol = poliza_txt.strip()
@@ -678,6 +697,13 @@ class AdvanHelperApp(ctk.CTk):
             if item.get("pol"):
                 ent_p.insert(0, item["pol"])
             ent_p.pack(side="left", padx=6)
+
+            btn_del = ctk.CTkButton(
+                bot, text="🗑️", width=28, height=26, corner_radius=6,
+                fg_color="#1e293b", hover_color="#ef4444", text_color="#f87171", font=("Segoe UI", 10),
+                command=lambda it=item: self.eliminar_item_sin_poliza(it)
+            )
+            btn_del.pack(side="right", padx=(4, 0))
 
             btn_ok = ctk.CTkButton(
                 bot, text="💾 Guardar" if not item.get("pol") else f"✅ Pól: {item['pol']}",
