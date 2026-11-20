@@ -552,7 +552,7 @@ class AdvanHelperApp(ctk.CTk):
             btn_del = ctk.CTkButton(
                 bot, text="🗑️", width=28, height=26, corner_radius=6,
                 fg_color="#1e293b", hover_color="#ef4444", text_color="#f87171", font=("Segoe UI", 10),
-                command=lambda it=item: self.eliminar_item_cola(it)
+                command=lambda it=item: self.eliminar_fila_remota(it)
             )
             btn_del.pack(side="right", padx=(4, 0))
 
@@ -572,17 +572,40 @@ class AdvanHelperApp(ctk.CTk):
         self.update()
         self.lbl_status.configure(text=f"📋 Copiado al Ctrl+V: {item['contab']}", text_color="#38bdf8")
 
-    def eliminar_item_cola(self, item):
-        if item in self.cola_salidas:
-            self.cola_salidas.remove(item)
-            self.renderizar_cola()
-            self.lbl_status.configure(text=f"🗑️ Fila {item.get('row', '')} eliminada de la cola", text_color="#94a3b8")
-
-    def eliminar_item_sin_poliza(self, item):
-        if item in self.cola_sin_poliza:
-            self.cola_sin_poliza.remove(item)
-            self.renderizar_cola_sin_poliza()
-            self.lbl_status.configure(text=f"🗑️ Fila {item.get('row', '')} quitada de pendientes", text_color="#94a3b8")
+    def eliminar_fila_remota(self, item):
+        fila = item.get("row")
+        if not fila:
+            return
+        self.lbl_status.configure(text=f"⏳ Eliminando fila {fila} en Google Sheets...", text_color="#38bdf8")
+        self.update()
+        try:
+            req = urllib.request.Request(
+                WEBHOOK_URL,
+                data=json.dumps({"action": "eliminar_fila", "row": fila}).encode('utf-8'),
+                headers={'Content-Type': 'application/json'}
+            )
+            with urllib.request.urlopen(req) as resp:
+                res = json.loads(resp.read().decode('utf-8'))
+                if res.get("status") == "ok":
+                    if item in self.cola_salidas:
+                        self.cola_salidas.remove(item)
+                    if item in self.cola_sin_poliza:
+                        self.cola_sin_poliza.remove(item)
+                    for it in self.cola_salidas:
+                        if it.get("row", 0) > fila:
+                            it["row"] -= 1
+                    for it in self.cola_sin_poliza:
+                        if it.get("row", 0) > fila:
+                            it["row"] -= 1
+                    if self.vista_actual == "sin_poliza":
+                        self.renderizar_cola_sin_poliza()
+                    else:
+                        self.renderizar_cola()
+                    self.lbl_status.configure(text=f"🗑️ Fila {fila} eliminada en Google Sheets", text_color="#10b981")
+                else:
+                    self.lbl_status.configure(text=f"⚠️ No se pudo eliminar fila {fila} en Sheets", text_color="#f59e0b")
+        except Exception:
+            self.lbl_status.configure(text=f"❌ Error al eliminar fila {fila}", text_color="#ef4444")
 
     def guardar_poliza_item(self, item, poliza_txt):
         pol = poliza_txt.strip()
@@ -701,7 +724,7 @@ class AdvanHelperApp(ctk.CTk):
             btn_del = ctk.CTkButton(
                 bot, text="🗑️", width=28, height=26, corner_radius=6,
                 fg_color="#1e293b", hover_color="#ef4444", text_color="#f87171", font=("Segoe UI", 10),
-                command=lambda it=item: self.eliminar_item_sin_poliza(it)
+                command=lambda it=item: self.eliminar_fila_remota(it)
             )
             btn_del.pack(side="right", padx=(4, 0))
 
